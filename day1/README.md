@@ -1,4 +1,4 @@
-# Day1
+# Day 1 Training
 
 ## Thailand Web Map
 - [Agri-Map Platform](https://agri-map-online.moac.go.th/)
