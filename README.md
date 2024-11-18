@@ -1,1 +1,3 @@
-# tu-gis24
+# GIS Application Development Course 2024
+
+
