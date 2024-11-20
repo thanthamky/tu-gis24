@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Web Map</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet-compass@0.3.0/dist/leaflet-compass.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"
+    />
+    <style>
+      /* Fullscreen map */
+      html,
+      body,
+      #map {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet MarkerCluster Plugin -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+    <script>
+      // Initialize the map
+      var map = L.map("map").setView([13.736717, 100.523186], 10); // Bangkok coordinates as example
+
+      // Define base maps
+      var osm = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap contributors",
+        }
+      );
+
+      var satellite = L.tileLayer(
+        "https://{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+        {
+          maxZoom: 19,
+          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+          attribution: "© Google Satellite",
+        }
+      );
+
+      osm.addTo(map); // Add OpenStreetMap as the default basemap
+
+      // Layer control
+      var baseMaps = {
+        OpenStreetMap: osm,
+        Satellite: satellite,
+      };
+
+      // Add map scale
+      L.control.scale().addTo(map);
+
+      function getIconClusterLayer(geojson_file, icon_file, display_property) {
+        // Function to create markers with custom icon
+        function onEachFeature(feature, layer) {
+          if (feature.properties && feature.properties[display_property]) {
+            layer.bindPopup(feature.properties[display_property]); // Example property
+          }
+        }
+        // Create a marker cluster group
+        var markers = L.markerClusterGroup();
+        // Define custom icon
+        var customIcon = L.icon({
+          iconUrl: icon_file, // Replace with your custom icon path
+          iconSize: [32, 32], // Size of the icon
+          iconAnchor: [16, 32], // Point of the icon which will correspond to marker's location
+          popupAnchor: [0, -32], // Point from which the popup should open relative to the iconAnchor
+        });
+
+        // Load GeoJSON data and add to marker cluster group with custom icons
+        fetch(geojson_file) // Replace with your GeoJSON file path
+          .then((response) => response.json())
+          .then((data) => {
+            L.geoJSON(data, {
+              pointToLayer: function (feature, latlng) {
+                return L.marker(latlng, { icon: customIcon });
+              },
+              onEachFeature: onEachFeature,
+            }).addTo(markers); // Add each point to the cluster group
+          });
+        // Add marker cluster group to the map
+        //map.addLayer(markers);
+
+        return markers;
+      }
+
+      var mallCluster = getIconClusterLayer(
+        "department_store.geojson",
+        "mall_icon.png",
+        "name"
+      );
+
+      var homeCluster = getIconClusterLayer(
+        "opendata_project_clip.geojson",
+        "house_icon.png",
+        "name_th"
+      );
+
+      // load GeoJSON from an external file
+      function loadGeoJSON(url, config) {
+        var geojsonLayer = L.geoJSON(null, config);
+
+        // load GeoJSON from an external file
+        fetch(url)
+          .then((res) => res.json())
+          .then((data) => geojsonLayer.addData(data));
+
+        return geojsonLayer;
+      }
+
+      var voronoiLayer = loadGeoJSON("department_store_voronoi.geojson", {style: {color: 'black'}});
+
+      var lineLayer = loadGeoJSON("hub_lines.geojson", {style: {color: 'blue'}});
+
+      map.addLayer(homeCluster);
+
+      var overlayMaps = {
+        "Shopping Malls": mallCluster,
+        "Residences": homeCluster,
+        "Mall Service Areas": voronoiLayer,
+        "Hub Lines": lineLayer
+      };
+
+      L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+    </script>
+  </body>
+</html>
